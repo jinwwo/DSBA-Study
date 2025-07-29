@@ -1,0 +1,7 @@
+defaults:
+  - _self_
+  - dataset: cifar10
+
+seed: ${seed}
+test_subset_size: 0
+split_ratio: 0.2

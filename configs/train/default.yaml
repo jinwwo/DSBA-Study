@@ -1,0 +1,11 @@
+defaults:
+  - _self_
+  - loss: cross_entropy
+  - optimizer: adam
+  - scheduler: cosine
+  - logger: default
+
+model_name: ${model.models.name}
+model_save_path: /workspace/checkpoints/${model.models.name}
+device: cuda
+max_epochs: 10

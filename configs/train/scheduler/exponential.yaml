@@ -1,0 +1,4 @@
+type: exponential
+gamma: 0.95
+last_epoch: -1
+verbose: false

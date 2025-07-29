@@ -1,0 +1,5 @@
+type: cosine
+T_max: 50
+eta_min: 1e-5
+last_epoch: -1
+verbose: false

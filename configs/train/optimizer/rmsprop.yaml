@@ -1,0 +1,7 @@
+type: rmsprop
+lr: 0.01
+alpha: 0.99
+eps: 1e-8
+weight_decay: 0.0001
+momentum: 0.9
+centered: false

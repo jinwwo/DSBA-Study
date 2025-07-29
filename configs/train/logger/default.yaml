@@ -1,0 +1,9 @@
+interval: 10
+
+use_wandb: ${use_wandb}
+project: image-classification
+run_name: null
+
+watch_model: true
+log_gradients: true
+log_freq: 100

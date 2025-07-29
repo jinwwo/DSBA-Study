@@ -1,0 +1,6 @@
+defaults:
+  - _self_
+  - models: resnet18
+
+pretrained: false
+checkpoint_path: null

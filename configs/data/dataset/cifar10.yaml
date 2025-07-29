@@ -1,0 +1,6 @@
+name: cifar10
+path: /workspace/data/cifar10
+batch_size: 64
+num_workers: 4
+image_size: 32
+num_classes: 10

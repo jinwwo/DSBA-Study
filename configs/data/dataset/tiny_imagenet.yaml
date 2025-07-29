@@ -1,0 +1,6 @@
+name: tiny_imagenet
+path: /workspace/data/tiny-imagenet
+batch_size: 64
+num_workers: 4
+image_size: 32
+num_classes: 60
