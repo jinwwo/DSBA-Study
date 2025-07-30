@@ -11,11 +11,29 @@ from typing import List, Union, Dict, Optional, Any
 
 
 class MetricEvaluator:
+    """
+    Evaluates classification metrics including accuracy, AUROC, F1-score,
+    precision, recall, and optionally per-class metrics.
+    """
     def __init__(self, num_classes: Optional[int] = None) -> None:
+        """
+        Args:
+            num_classes (Optional[int]): Number of classes in the classification task.
+        """
         self.num_classes = num_classes
 
     @staticmethod
     def accuracy(outputs: torch.Tensor, targets: torch.Tensor) -> float:
+        """
+        Computes top-1 accuracy between model outputs and ground truth.
+
+        Args:
+            outputs (torch.Tensor): Raw model outputs (logits), shape (N, C).
+            targets (torch.Tensor): Ground-truth labels, shape (N,).
+
+        Returns:
+            float: Accuracy value between 0 and 1.
+        """
         preds = outputs.argmax(dim=1)
         correct = targets.eq(preds).sum().item()
         return correct / targets.size(0)
@@ -28,6 +46,20 @@ class MetricEvaluator:
         return_per_class: bool = False,
         apply_softmax: bool = True,
     ) -> Dict[str, Any]:
+        """
+        Computes classification metrics including AUROC, F1, recall, precision.
+        Optionally includes per-class metrics and confusion matrix.
+
+        Args:
+            y_true (List[int]): Ground-truth class indices.
+            y_score (Union[np.ndarray, List[List[float]]]): Raw model output scores or logits.
+            y_pred (List[int]): Predicted class indices.
+            return_per_class (bool): Whether to include per-class metrics.
+            apply_softmax (bool): Whether to apply softmax to y_score before computing AUROC.
+
+        Returns:
+            Dict[str, Any]: Dictionary of computed metrics.
+        """
         y_score_tensor = torch.FloatTensor(y_score)
         if apply_softmax:
             y_score_tensor = torch.nn.functional.softmax(y_score_tensor, dim=1)
