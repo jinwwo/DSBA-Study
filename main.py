@@ -2,7 +2,6 @@ import os
 
 import hydra
 from omegaconf import DictConfig, OmegaConf
-from sympy import true
 
 from src.trainer.trainer import Trainer
 from src.model.builder import build_model
@@ -11,16 +10,16 @@ from src.dataset.loader import get_data_loaders
 
 
 @hydra.main(config_path='configs', config_name='default.yaml')
-def main(cfg: DictConfig):
+def main(cfg: DictConfig) -> None:
     print(OmegaConf.to_yaml(cfg))
     seed_everything(cfg.seed)
-
+    
     # data loader
     train_loader, valid_loader, test_loader = get_data_loaders(cfg.data)
     
     # model
     model = build_model(cfg.model)
-    
+
     if cfg.use_wandb:
         wandb_login(key=cfg.wandb_key)
         init_wandb(model, cfg.train)
@@ -32,6 +31,7 @@ def main(cfg: DictConfig):
         valid_loader = valid_loader,
         test_loader = test_loader
     )
+
     OmegaConf.save(config=cfg, f=os.path.join(cfg.train.model_save_path, 'configs.yaml'))
     trainer.fit()
     trainer.test()
