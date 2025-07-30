@@ -23,10 +23,20 @@ class Trainer:
         self,
         model: torch.nn.Module,
         cfg: DictConfig,
-        train_loader: DataLoader,
-        valid_loader: DataLoader,
+        train_loader: Optional[DataLoader] = None,
+        valid_loader: Optional[DataLoader] = None,
         test_loader: Optional[DataLoader] = None,
     ) -> None:
+        """
+        Initialize the Trainer class.
+
+        Args:
+            model (torch.nn.Module): The neural network model to train.
+            cfg (DictConfig): Configuration object containing training settings.
+            train_loader (Optional[DataLoader]): DataLoader for training data.
+            valid_loader (Optional[DataLoader]): DataLoader for validation data.
+            test_loader (Optional[DataLoader]): DataLoader for test data.
+        """
         self.model = model.to(cfg.device)
         self.device = torch.device(cfg.device)
         self.cfg = cfg
@@ -48,6 +58,10 @@ class Trainer:
         os.makedirs(self.save_path, exist_ok=True)
 
     def fit(self) -> None:
+        """
+        Train the model across epochs and validate after each epoch.
+        Saves the best and last model checkpoints and logs metrics.
+        """
         best_acc = 0.0
         step = 0
         history = {}
@@ -89,23 +103,41 @@ class Trainer:
         self._save_model("last_model.pt")
         self._save_json(history, "history.json")
 
-    def test(self) -> None:
+    def test(self, save_name: Optional[str] = None) -> None:
+        """
+        Evaluate the trained model on the test set and save test results.
+
+        Args:
+            save_name (Optional[str]): Prefix for saved result files. Defaults to 'test_results'.
+        """
+        if save_name is None:
+            save_name = 'test_results'
+            print(f"{save_name}-per_class.json")
+            return
         if self.test_loader is None:
             _logger.warning("Test loader is None. Skipping test.")
             return
 
         test_metrics = self._run_epoch(self.test_loader, mode="test", return_per_class=True)
 
-        self._save_json(test_metrics.get("per_class", {}), "test_results-per_class.json")
+        self._save_json(test_metrics.get("per_class", {}), f"{save_name}-per_class.json")
         test_metrics.pop("per_class", None)
-        self._save_json(test_metrics, "test_results.json")
+        self._save_json(test_metrics, f"{save_name}.json")
         
     def _run_epoch(
-        self,
-        dataloader: DataLoader,
-        mode: str,
-        return_per_class: bool = False,
+        self, dataloader: DataLoader, mode: str, return_per_class: bool = False
     ) -> Dict[str, float]:
+        """
+        Run a single epoch of training or evaluation.
+
+        Args:
+            dataloader (DataLoader): DataLoader for the dataset.
+            mode (str): Either "train", "val", or "test".
+            return_per_class (bool): If True, return per-class metrics.
+
+        Returns:
+            Dict[str, float]: Dictionary containing performance metrics.
+        """
         acc_m, loss_m = AverageMeter(), AverageMeter()
         total_score, total_pred, total_true = [], [], []
         
@@ -158,6 +190,13 @@ class Trainer:
         return metrics
     
     def _log_metrics(self, mode: str, metrics: Dict[str, float]) -> None:
+        """
+        Log evaluation metrics to the console.
+
+        Args:
+            mode (str): Mode string indicating the phase (train/val/test).
+            metrics (Dict[str, float]): Dictionary of evaluation metrics.
+        """
         _logger.info(
             f"\n{mode.upper()}: Loss: {metrics['loss']:.3f} | "
             f"Acc: {metrics['acc'] * 100:.3f}% | "
@@ -168,8 +207,21 @@ class Trainer:
         )
 
     def _save_json(self, obj: dict, filename: str) -> None:
+        """
+        Save a dictionary object to a JSON file.
+
+        Args:
+            obj (dict): Dictionary object to save.
+            filename (str): Name of the file to write.
+        """
         with open(os.path.join(self.save_path, filename), "w") as f:
             json.dump(obj, f, indent=4)
 
     def _save_model(self, filename: str) -> None:
+        """
+        Save the current model's state_dict to a file.
+
+        Args:
+            filename (str): Name of the file to save the model weights.
+        """
         torch.save(self.model.state_dict(), os.path.join(self.save_path, filename))
