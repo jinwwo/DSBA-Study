@@ -127,7 +127,7 @@ def main(configs : omegaconf.DictConfig):
     
     total_test_loss, total_test_acc= 0.0, 0.0
     with torch.no_grad():
-        for batch in tqdm(valid_loader, desc=f'Testing" {epoch+1}'):
+        for batch in tqdm(test_loader, desc=f'Testing" {epoch+1}'):
             test_loss, test_accuracy = valid_iter(model, batch, device)
             total_test_loss += test_loss.item()
             total_test_acc += test_accuracy
