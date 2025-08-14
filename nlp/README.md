@@ -37,7 +37,7 @@ This project uses the following dataset and models:
 > All models are loaded via the **HuggingFace Transformers** library using **pretrained weights**.
 
 The original dataset consists of predefined train and test splits.
-**However, in this project, we merged the original splits and then re-split them into train, validation, and test sets with a ratio of 9:1:1.**
+**However, in this project, we merged the original splits and then re-split them into train, validation, and test sets with a ratio of 8:1:1.**
 Additionally, class proportions were preserved to prevent imbalance, ensuring fairness across all subsets.
 
 #### Class Distribution Info
@@ -111,7 +111,7 @@ bash scripts/run_all.sh
 # 📋 Training Configuration
 
 #### Data
-- Dataset split: `train : valid : test = 0.9 : 0.1 : 0.1`  
+- Dataset split: `train : valid : test = 0.8 : 0.1 : 0.1`  
 - Batch size: `32`  
 - Max sequence length: `128` (of tokenizer)
 
