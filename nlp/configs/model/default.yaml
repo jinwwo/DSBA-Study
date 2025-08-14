@@ -1,3 +1,3 @@
-model_id: bert-base-uncased # or ModernBERT-base
+model_id: bert-base-uncased # or answerdotai/ModernBERT-base
 dropout_rate: 0.1
 num_labels: 2

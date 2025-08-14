@@ -8,7 +8,6 @@ log_freq: 100
 # hparams
 lr: 5e-5
 max_epochs: 5
-weight_decay: 0.1
 
 # path
 model_name: ${model.model_id}
