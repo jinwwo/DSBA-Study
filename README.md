@@ -1,7 +1,9 @@
 # DSBA Study Program — Fall 2025
 
 <div align="center">
-  <img width="400" alt="ModernBERT" src="https://github.com/user-attachments/assets/ebe43743-1c50-418d-ae8f-746740a561dc" />
+  <a href="https://dsba.snu.ac.kr/">
+    <img width="400" alt="logo" src="https://github.com/user-attachments/assets/ebe43743-1c50-418d-ae8f-746740a561dc" />
+  </a>
 </div>
 
 # Table of Contents
