@@ -22,6 +22,7 @@ def train_iter(model, inputs, optimizer, device):
     
     optimizer.zero_grad()
     loss.backward()
+    torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
     optimizer.step()
     
     accuracy = calculate_accuracy(logits, inputs['label'])
@@ -50,7 +51,7 @@ def set_device(device):
 
 
 def get_model_tokenizer(configs, device):
-    model = EncoderForClassification(configs).to(device)
+    model = EncoderForClassification(configs)
     tokenizer = AutoTokenizer.from_pretrained(configs.model_id)
     return model.to(device), tokenizer
 
@@ -77,7 +78,7 @@ def main(configs : omegaconf.DictConfig):
     OmegaConf.save(config=configs, f=os.path.join(model_save_path, 'configs.yaml'))
     
     # Set optimizer
-    optimizer = torch.optim.Adam(model.parameters(), lr=configs.train.lr, weight_decay=configs.train.weight_decay)
+    optimizer = torch.optim.Adam(model.parameters(), lr=configs.train.lr)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer=optimizer, step_size=1, gamma=0.9)
     
     # Train & validation for each epoch
@@ -88,7 +89,7 @@ def main(configs : omegaconf.DictConfig):
         total_train_loss, total_train_acc = 0.0, 0.0
         
         # training
-        for batch in tqdm(train_loader, desc=f'Epoch: {epoch+1}/{epochs}'):
+        for batch in tqdm(train_loader, desc=f'Epoch: {epoch+1}/{epochs}'):            
             train_loss, train_accuracy = train_iter(model, batch, optimizer, device=device)
 
             total_train_loss += train_loss.item()
@@ -106,7 +107,7 @@ def main(configs : omegaconf.DictConfig):
                 valid_loss, valid_accuracy = valid_iter(model, batch, device)
                 total_val_loss += valid_loss.item()
                 total_val_acc += valid_accuracy
-            
+        
         _logger.info(f"Epoch {epoch+1}/{epochs} - Val Loss: {total_val_loss / len(valid_loader)}")
         _logger.info(f"Epoch {epoch+1}/{epochs} - Val Acc: {total_val_acc / len(valid_loader)}")
         wandb.log({'val_loss': total_val_loss / len(valid_loader), 'val_acc': total_val_acc / len(valid_loader)})
