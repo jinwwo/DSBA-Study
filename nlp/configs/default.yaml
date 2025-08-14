@@ -1,0 +1,9 @@
+defaults:
+  - _self_
+  - data: default
+  - model: default
+  - train: default
+
+seed: 42
+wandb_key: null
+device: '0'
