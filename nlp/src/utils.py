@@ -1,13 +1,12 @@
 import os
 import random
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Union
 
 import numpy as np
-import omegaconf
 import torch
 import wandb
-from omegaconf import DictConfig, OmegaConf
+from omegaconf import DictConfig
 
 
 def wandb_login(key: Optional[str] = None) -> bool:
@@ -23,7 +22,7 @@ def wandb_login(key: Optional[str] = None) -> bool:
     return wandb.login(key=key)
 
 
-def init_wandb(models, cfg: DictConfig):
+def init_wandb(models, cfg: DictConfig) -> None:
     import pytz
     
     try:
@@ -51,7 +50,7 @@ def init_wandb(models, cfg: DictConfig):
         print(f"[Warning] Failed to initialize wandb: {e}")
         
         
-def seed_everything(random_seed):
+def seed_everything(random_seed: int) -> None:
     torch.manual_seed(random_seed)
     torch.cuda.manual_seed(random_seed)
     torch.cuda.manual_seed_all(random_seed) # if use multi-GPU
@@ -62,3 +61,22 @@ def seed_everything(random_seed):
     np.random.seed(random_seed)
     random.seed(random_seed)
     os.environ['PYTHONHASHSEED'] = str(random_seed)
+    
+
+def set_device(device: Union[str, int]) -> torch.device:
+    """
+    Set CUDA visible devices and return a torch.device.
+
+    Parameters
+    ----------
+    device : Union[str, int]
+        GPU index (e.g., '0' or 0). If CUDA is unavailable, CPU is used.
+
+    Returns
+    -------
+    torch.device
+        The resolved device (cuda:<idx> or cpu).
+    """
+    os.environ['CUDA_VISIBLE_DEVICES'] = device
+    device = torch.device(f'cuda:{device}') if torch.cuda.is_available() else 'cpu'
+    return device

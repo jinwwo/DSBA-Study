@@ -1,22 +1,50 @@
 import logging
 import os
+from typing import Dict, Tuple
 
 import hydra
 import omegaconf
 import torch
+import torch.nn as nn
 import wandb
 from omegaconf import OmegaConf
 from tqdm import tqdm
-from transformers import AutoTokenizer
+from transformers import AutoTokenizer, PreTrainedTokenizerBase
 
 from src.data import get_dataloader
 from src.model import EncoderForClassification
-from src.utils import init_wandb, seed_everything, wandb_login
+from src.utils import init_wandb, seed_everything, set_device, wandb_login
 
 _logger = logging.getLogger("train")
 
 
-def train_iter(model, inputs, optimizer, device):
+def train_iter(
+    model: nn.Module,
+    inputs: Dict[str, torch.Tensor],
+    optimizer: torch.optim.Optimizer,
+    device: torch.device,
+) -> Tuple[torch.Tensor, float]:
+    """
+    Single training iteration (forward, backward, step) and logging.
+
+    Parameters
+    ----------
+    model : nn.Module
+        Classification model (returns logits, loss).
+    inputs : Dict[str, torch.Tensor]
+        Batch inputs containing 'input_ids', 'attention_mask', optional 'token_type_ids', and 'label'.
+    optimizer : torch.optim.Optimizer
+        Optimizer for parameter updates.
+    device : torch.device
+        Target device.
+
+    Returns
+    -------
+    loss : torch.Tensor
+        Scalar loss tensor (before .item()).
+    accuracy : float
+        Accuracy for the batch.
+    """
     inputs = {key: value.to(device) for key, value in inputs.items()}
     logits, loss = model(**inputs)
     
@@ -30,7 +58,30 @@ def train_iter(model, inputs, optimizer, device):
     return loss, accuracy
 
 
-def valid_iter(model, inputs, device):
+def valid_iter(
+    model: nn.Module,
+    inputs: Dict[str, torch.Tensor],
+    device: torch.device,
+) -> Tuple[torch.Tensor, float]:
+    """
+    Single validation iteration (forward only).
+
+    Parameters
+    ----------
+    model : nn.Module
+        Classification model (returns logits, loss).
+    inputs : Dict[str, torch.Tensor]
+        Batch inputs.
+    device : torch.device
+        Target device.
+
+    Returns
+    -------
+    loss : torch.Tensor
+        Scalar loss tensor.
+    accuracy : float
+        Accuracy for the batch.
+    """
     inputs = {key : value.to(device) for key, value in inputs.items()}
     logits, loss = model(**inputs)
     
@@ -38,57 +89,88 @@ def valid_iter(model, inputs, device):
     return loss, accuracy
 
 
-def calculate_accuracy(logits, label):
+def calculate_accuracy(logits: torch.Tensor, label: torch.Tensor) -> float:
+    """
+    Compute accuracy from logits and integer class labels.
+
+    Parameters
+    ----------
+    logits : torch.Tensor
+        Shape (batch_size, num_classes).
+    label : torch.Tensor
+        Shape (batch_size,), dtype=torch.long.
+
+    Returns
+    -------
+    float
+        Accuracy in [0, 1].
+    """
     preds = logits.argmax(dim=-1)
     correct = (preds == label).sum().item()
     return correct / label.size(0)
 
 
-def set_device(device):
-    os.environ['CUDA_VISIBLE_DEVICES'] = device
-    device = torch.device(f'cuda:{device}') if torch.cuda.is_available() else 'cpu'
-    return device
+def get_model_tokenizer(
+    configs: omegaconf.DictConfig, device: torch.device
+) -> Tuple[nn.Module, PreTrainedTokenizerBase]:
+    """
+    Instantiate model and tokenizer, move model to device.
 
+    Parameters
+    ----------
+    configs : omegaconf.DictConfig
+        Model-related config; must include `model_id`, `dropout_rate`, `num_labels`.
+    device : torch.device
+        Target device.
 
-def get_model_tokenizer(configs, device):
+    Returns
+    -------
+    (model, tokenizer) : Tuple[nn.Module, PreTrainedTokenizerBase]
+        Initialized model on the given device and matching tokenizer.
+    """
     model = EncoderForClassification(configs)
     tokenizer = AutoTokenizer.from_pretrained(configs.model_id)
     return model.to(device), tokenizer
 
 
 @hydra.main(config_path='configs', config_name='default.yaml')
-def main(configs : omegaconf.DictConfig):
+def main(configs: omegaconf.DictConfig) -> None:
+    """
+    Entry point for training/validation/testing pipeline.
+    """
     print(OmegaConf.to_yaml(configs))
     seed_everything(configs.seed)
     device = set_device(configs.device)
     
-    # model, tokenizer
+    # model & tokenizer
     model, tokenizer = get_model_tokenizer(configs.model, device)
     
-    # data loader
+    # data loaders
     train_loader = get_dataloader(configs.data, tokenizer, 'train')
     valid_loader = get_dataloader(configs.data, tokenizer, 'valid')
     test_loader = get_dataloader(configs.data, tokenizer, 'test')
     
+    # set wandb
     wandb_login(key=configs.wandb_key)
     init_wandb(model, configs.train)
     
+    # save configs and prepare model save path
     model_save_path = configs.train.model_save_path
     os.makedirs(model_save_path, exist_ok=True)
     OmegaConf.save(config=configs, f=os.path.join(model_save_path, 'configs.yaml'))
     
-    # Set optimizer
+    # optimizer & scheduler
     optimizer = torch.optim.Adam(model.parameters(), lr=configs.train.lr)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer=optimizer, step_size=1, gamma=0.9)
     
-    # Train & validation for each epoch
+    # train & validate
     epochs = configs.train.max_epochs
     best_valid_accuracy = -1
     for epoch in range(epochs):
         model.train()
         total_train_loss, total_train_acc = 0.0, 0.0
         
-        # training
+        # train
         for batch in tqdm(train_loader, desc=f'Epoch: {epoch+1}/{epochs}'):            
             train_loss, train_accuracy = train_iter(model, batch, optimizer, device=device)
 
@@ -98,7 +180,7 @@ def main(configs : omegaconf.DictConfig):
         _logger.info(f"Epoch {epoch+1}/{epochs} - Train Loss: {total_train_loss / len(train_loader)}")
         _logger.info(f"Epoch {epoch+1}/{epochs} - Train Acc: {total_train_acc / len(train_loader)}")
         
-        # validation
+        # validate
         total_val_loss, total_val_acc = 0.0, 0.0
         
         model.eval()
@@ -121,7 +203,7 @@ def main(configs : omegaconf.DictConfig):
         wandb.log({'lr': optimizer.param_groups[0]["lr"]})
         scheduler.step()
         
-    # testing
+    # test using the best checkpoint
     model.eval()
     model.load_state_dict(torch.load(os.path.join(model_save_path, 'best_model.pt')))
     
