@@ -2,17 +2,17 @@
 
 ---
 
-# 📚 Table of Contents
-1. [Overview](#-overview)  
-2. [Datasets & Models](-#-datasets--models)
-3. [Project Structure](#-project-structure)  
-4. [Setup & Usage](-#-setup--usage)  
-5. [Training Configuration](#-training-configuration)   
-6. [Results & Evaluation](-#-results--evaluation)
+# Table of Contents
+1. [Overview](#overview)  
+2. [Datasets & Models](#datasets--models)
+3. [Project Structure](#project-structure)  
+4. [Setup & Usage](#setup--usage)  
+5. [Training Configuration](#training-configuration)   
+6. [Results & Evaluation](#results--evaluation)
 
 ---
 
-# 📌 Overview
+# Overview
 This project implements a **text classification pipeline** from scratch using **HuggingFace Transformers** and **PyTorch**.  
 
 The pipeline includes:
@@ -26,7 +26,7 @@ The main goal is to implement the entire workflow — from configuration managem
 
 ---
 
-# 🗂️ Datasets & Models
+# Datasets & Models
 This project uses the following dataset and models:
 
 - **Dataset**: [stanfordnlp/imdb](https://huggingface.co/datasets/stanfordnlp/imdb)  
@@ -50,7 +50,7 @@ Additionally, class proportions were preserved to prevent imbalance, ensuring fa
 
 ---
 
-# 📁 Project Structure
+# Project Structure
 ```
 nlp/
 ├── configs/
@@ -84,12 +84,12 @@ src/
 
 ---
 
-# ⚙️ Setup & Usage
+# Setup & Usage
 This project was developed and tested in a **Linux environment**.
 
 ---
 
-### 🚀 Quick Start
+### Quick Start
 **Step 1. Install dependencies**
 ```bash
 pip install -r requirements.txt
@@ -108,7 +108,7 @@ bash scripts/run_all.sh
 
 ---
 
-# 📋 Training Configuration
+# Training Configuration
 
 #### Data
 - Dataset split: `train : valid : test = 0.8 : 0.1 : 0.1`  
@@ -128,7 +128,7 @@ bash scripts/run_all.sh
 #### Train
 - Epochs: `5`
 
-# 📊 Results & Evaluation
+# Results & Evaluation
 ### 1. Test Data Evaluation
 The following table summarizes the final accuracy of both models on the held-out test set:
 
