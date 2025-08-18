@@ -2,18 +2,18 @@
 
 ---
 
-# 📚 Table of Contents
+# Table of Contents
 
-1. [Overview](#-overview)
-2. [Datasets & Models](-#-datasets--models)  
-3. [Project Structure](-#-project-structure)  
-4. [Setup & Usage](-#-setup--usage)  
-5. [Training Configuration](#-training-configuration)  
-6. [Results & Evaluation](#-results--evaluation)
+1. [Overview](#overview)
+2. [Datasets & Models](#datasets--models)  
+3. [Project Structure](#project-structure)  
+4. [Setup & Usage](#setup--usage)  
+5. [Training Configuration](#training-configuration)  
+6. [Results & Evaluation](#results--evaluation)
 
 ---
 
-# 📌 Overview
+# Overview
 
 This project implements a **modular image classification pipeline** from scratch, covering:
 
@@ -26,7 +26,7 @@ All components were designed and integrated independently, without relying on pr
 
 ---
 
-# 🗂️ Datasets & Models
+# Datasets & Models
 
 Three datasets were used throughout this project:
 
@@ -57,7 +57,7 @@ Models were grouped into **CNN-based** and **Transformer-based** architectures, 
 
 ---
 
-# 📁 Project Structure
+# Project Structure
 
 ```
 workspace/
@@ -132,7 +132,7 @@ src
     └── utils.py                 # Seed setup, logging, etc.
 ```
 
-# ⚙️ Setup & Usage
+# Setup & Usage
 
 This project was developed and tested in a **Linux environment**.
 
@@ -153,7 +153,7 @@ This project was developed and tested in a **Linux environment**.
 
 ---
 
-### 🚀 Quick Start
+### Quick Start
 
 **Step 1. Install dependencies**
 ```bash
@@ -201,7 +201,7 @@ Saved files include:
 | `history.json`             | Training history (loss/acc)        |
 
 
-# 📋 Training Configuration
+# Training Configuration
 
 The default training configuration used throughout this project is defined as follows via `configs/default.yaml` and related model-specific YAML files:
 
@@ -231,7 +231,7 @@ The default training configuration used throughout this project is defined as fo
 - AUROC  
 - Precision
 
-# 📊 Results & Evaluation
+# Results & Evaluation
 
 ### Experiment 1. Comparison of Overfitting Patterns between CNNs and ViTs
 
