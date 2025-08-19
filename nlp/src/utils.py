@@ -5,8 +5,17 @@ from typing import Optional, Union
 
 import numpy as np
 import torch
+import torch.nn as nn
 import wandb
 from omegaconf import DictConfig
+
+
+def set_wandb(model: nn.Module, cfg: DictConfig):
+    if cfg.use_wandb:
+        wandb_login(key=cfg.wandb_key)
+        init_wandb(model, cfg.train)
+
+    return cfg.use_wandb
 
 
 def wandb_login(key: Optional[str] = None) -> bool:
