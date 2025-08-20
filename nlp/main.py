@@ -1,5 +1,7 @@
+import json
 import logging
 import os
+import time
 from typing import Dict, Tuple
 
 import hydra
@@ -159,7 +161,7 @@ def main(configs: omegaconf.DictConfig) -> None:
 
     # set wandb
     use_wandb = set_wandb(model, configs)
-        
+
     # save configs and prepare model save path
     model_save_path = configs.train.model_save_path
     os.makedirs(model_save_path, exist_ok=True)
@@ -183,8 +185,11 @@ def main(configs: omegaconf.DictConfig) -> None:
     )
 
     # train & validate
+    history = {}
     epochs = configs.train.max_epochs
     best_valid_accuracy = -1
+    train_start = time.perf_counter()
+    
     for epoch in range(epochs):
         model.train()
         total_train_loss, total_train_acc = 0.0, 0.0
@@ -209,20 +214,31 @@ def main(configs: omegaconf.DictConfig) -> None:
         )
 
         # validate
+        history[f"epoch_{epoch}"] = []
         total_val_loss, total_val_acc = 0.0, 0.0
-
         model.eval()
         with torch.no_grad():
-            for batch in tqdm(valid_loader, desc=f'Validating Epoch" {epoch+1}'):
+            for step, batch in enumerate(tqdm(valid_loader, desc=f'Validating Epoch" {epoch+1}')):                
                 valid_loss, valid_accuracy = valid_iter(model, batch, device)
                 total_val_loss += valid_loss.item()
                 total_val_acc += valid_accuracy
-
+        
+        avg_val_loss = total_val_loss / len(valid_loader)
+        avg_val_acc = total_val_acc / len(valid_loader)
+        
+        elapsed_time = time.perf_counter() - train_start
+        
+        history[f"epoch_{epoch}"].append({
+            "time": elapsed_time,
+            "val_loss": avg_val_loss,
+            "val_acc": avg_val_acc
+        })
+                
         _logger.info(
-            f"Epoch {epoch+1}/{epochs} - Val Loss: {total_val_loss / len(valid_loader)}"
+            f"Epoch {epoch+1}/{epochs} - Val Loss: {avg_val_loss}"
         )
         _logger.info(
-            f"Epoch {epoch+1}/{epochs} - Val Acc: {total_val_acc / len(valid_loader)}"
+            f"Epoch {epoch+1}/{epochs} - Val Acc: {avg_val_acc}"
         )
         
         if use_wandb:
@@ -233,8 +249,8 @@ def main(configs: omegaconf.DictConfig) -> None:
                 }
             )
 
-        if total_val_acc > best_valid_accuracy:
-            best_valid_accuracy = total_val_acc
+        if avg_val_acc > best_valid_accuracy:
+            best_valid_accuracy = avg_val_acc
             torch.save(
                 model.state_dict(), os.path.join(model_save_path, "best_model.pt")
             )
@@ -245,7 +261,13 @@ def main(configs: omegaconf.DictConfig) -> None:
             wandb.log({"lr": optimizer.param_groups[0]["lr"]})
         
         scheduler.step()
-
+        with open(os.path.join(model_save_path, "val_history.json"),"w") as f:
+            json.dump(history, f, indent=4)
+    
+    torch.save(
+        model.state_dict(), os.path.join(model_save_path, "last_model.pt")
+    )
+    
     # test using the best checkpoint
     model.eval()
     model.load_state_dict(torch.load(os.path.join(model_save_path, "best_model.pt")))
