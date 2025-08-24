@@ -26,9 +26,8 @@ def train_iter(
     inputs: Dict[str, torch.Tensor],
     optimizer: torch.optim.Optimizer,
     device: torch.device,
-    accelerator: Accelerator,
-    step_counter: int
-) -> Tuple[torch.Tensor, float]:
+    accelerator: Accelerator
+) -> Tuple[torch.Tensor, float, bool]:
     """
     Single training iteration (forward, backward, step) and logging.
 
@@ -42,6 +41,8 @@ def train_iter(
         Optimizer for parameter updates.
     device : torch.device
         Target device.
+    accelerator: Accelerator
+        Accelerator for gradient accumulation.
 
     Returns
     -------
@@ -49,10 +50,13 @@ def train_iter(
         Scalar loss tensor (before .item()).
     accuracy : float
         Accuracy for the batch.
+    stepped: bool
+        True if optimizer.step() called.
     """
     inputs = {key: value.to(device) for key, value in inputs.items()}
     
     with accelerator.accumulate(model):
+        stepped = False
         logits, loss = model(**inputs)
         accelerator.backward(loss)
         
@@ -60,11 +64,11 @@ def train_iter(
             accelerator.clip_grad_norm_(model.parameters(), 1.0)
             optimizer.step()
             optimizer.zero_grad()
-            step_counter += 1
+            stepped = True
 
     accuracy = calculate_accuracy(logits, inputs["label"])
     
-    return loss, accuracy
+    return loss, accuracy, stepped
 
 
 def valid_iter(
@@ -148,6 +152,7 @@ def main(configs: omegaconf.DictConfig) -> None:
     Entry point for training/validation/testing pipeline.
     """
     print(OmegaConf.to_yaml(configs))
+    print(configs.train.lr)
     seed_everything(configs.seed)
     device = set_device(configs.device)
 
@@ -196,21 +201,26 @@ def main(configs: omegaconf.DictConfig) -> None:
 
         # train
         for batch in tqdm(train_loader, desc=f"Epoch: {epoch+1}/{epochs}"):
-            train_loss, train_accuracy = train_iter(
-                model, batch, optimizer, device, accelerator, step_counter
+            train_loss, train_accuracy, stepped = train_iter(
+                model, batch, optimizer, device, accelerator
             )
-
-            if use_wandb:
-                wandb.log({"train_loss": train_loss.item(), "train_acc": train_accuracy})
+            if stepped:
+                step_counter += 1
+                total_train_loss += train_loss.item() / accelerator.gradient_accumulation_steps
+                total_train_acc += train_accuracy
                 
-            total_train_loss += train_loss.item()
-            total_train_acc += train_accuracy
+                if use_wandb:
+                        wandb.log({
+                        "train_loss": train_loss.item(),
+                        "train_acc": train_accuracy,
+                        "train_step": step_counter
+                    })
 
         _logger.info(
-            f"Epoch {epoch+1}/{epochs} - Train Loss: {total_train_loss / len(train_loader)}"
+            f"Epoch {epoch+1}/{epochs} - Train Loss: {total_train_loss / step_counter}"
         )
         _logger.info(
-            f"Epoch {epoch+1}/{epochs} - Train Acc: {total_train_acc / len(train_loader)}"
+            f"Epoch {epoch+1}/{epochs} - Train Acc: {total_train_acc / step_counter}"
         )
 
         # validate
@@ -268,9 +278,9 @@ def main(configs: omegaconf.DictConfig) -> None:
         model.state_dict(), os.path.join(model_save_path, "last_model.pt")
     )
     
-    # test using the best checkpoint
+    # test using the last model checkpoint
     model.eval()
-    model.load_state_dict(torch.load(os.path.join(model_save_path, "best_model.pt")))
+    model.load_state_dict(torch.load(os.path.join(model_save_path, "last_model.pt")))
 
     total_test_loss, total_test_acc = 0.0, 0.0
     with torch.no_grad():
