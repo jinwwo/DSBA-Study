@@ -1,0 +1,6 @@
+LSTM:
+  moving_avg: 25
+  enc_in: 7
+  d_model: 125
+  e_layers: 2
+  dropout: 0.1

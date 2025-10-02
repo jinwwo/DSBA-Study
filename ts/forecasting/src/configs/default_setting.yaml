@@ -1,0 +1,55 @@
+DEFAULT:
+  exp_name: forecasting 
+  seed: 42
+
+DATASET:
+  datadir: /DATA/ETT-small
+  dataname: ETTh1
+  scaler: standard
+  batch_size: 128
+  shuffle: true
+  num_workers: 0
+  pin_memory: true
+  drop_last: False
+  seq_len: 336
+  label_len: 168
+  pred_len: 96
+  split_rate: [0.7, 0.1, 0.2]
+  time_embedding: [0, 'd']
+  del_feature: null
+  seed: 42
+
+TRAIN:
+  epoch: 10
+  ckp_metric: loss
+  eval_epochs: 1
+  log_epochs: 1
+  log_eval_iter: 100
+  early_stopping_count: 5
+  resume: null
+  pre_training: false
+  data_num: 0
+  fine_tuning_method: full
+  grad_accum_steps: 1
+  mixed_precision: 'no'
+  early_stopping_metric: 'MSE'
+  lradj: 'type1'
+  return_output: false
+  del_pt_file: True
+  wandb: 
+    use: false
+    iter: 50
+    exp_name: default
+    project_name: 'TMAE'
+    entity: null
+LOSS:
+  loss_name: mse
+
+OPTIMIZER:
+  opt_name: adamw
+  lr: 0.0001
+  params:
+    weight_decay: 0.0005
+
+RESULT:
+  savedir: './saved_model'
